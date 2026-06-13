@@ -1,16 +1,6 @@
 """
 Part 2 — Python API client.
 
-Auth flow:
-  1. POST /auth/token      →  mfa_token
-  2. POST /auth/mfa/verify →  access_token (stored on client)
-  3. PUT  /account/banking →  masked confirmation  (printed)
-  4. PUT  /account/payment →  masked confirmation  (printed)
-
-Run:
-    python -m api_runner
-    # or
-    python api_runner.py
 """
 
 from __future__ import annotations
@@ -42,7 +32,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 API_BASE_URL = "https://zvyhufnwclhcvmgtqxwp.supabase.co/functions/v1/api-v1"
-MFA_CODE = "1234"  # sandbox accepts any code
+MFA_CODE = "1234" 
 
 
 def _pretty(label: str, data: dict) -> None:
@@ -73,7 +63,7 @@ def run() -> int:
         # Step 2 — MFA
         log.info("Verifying MFA")
         auth.verify_mfa(mfa_token, MFA_CODE)
-        log.info("✓ Authenticated")
+        log.info("Authenticated")
 
         # Step 3 — banking update
         log.info("Updating banking details")
