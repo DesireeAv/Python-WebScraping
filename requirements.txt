@@ -1,0 +1,7 @@
+playwright>=1.54.0
+requests>=2.32.0
+python-dotenv>=1.1.0
+requests>=2.32.0
+pytest>=7.0.0
+pytest-playwright>=0.3.0
+cov>=7.1.0
