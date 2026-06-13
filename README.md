@@ -26,20 +26,48 @@ engineering-challenge/
 │   └── data/
 │       └── test_data.py   ← Fake test data only
 │
-└── api/
-    ├── __init__.py
-    ├── client.py          ← HTTP client with retry/back-off
-    ├── auth.py            ← Login + MFA flow
-    ├── account.py         ← Banking + payment updates
-    └── exceptions.py      ← Custom exception hierarchy
+├── api/
+|   ├── __init__.py
+|   ├── client.py          ← HTTP client with retry/back-off
+|   ├── auth.py            ← Login + MFA flow
+|   ├── account.py         ← Banking + payment updates
+|   └── exceptions.py      ← Custom exception hierarchy
+|
+└── tests/
+    ├── test_account.py    
+    ├── test_auth.py       
+    └── test_client.py      
+    
 ```
+## Design Decisions
+
+### Browser Automation
+The Playwright implementation follows the Page Object Model (POM) pattern:
+
+- `LoginPage` handles authentication.
+- `MFAPage` handles MFA verification.
+- `AccountPage` handles banking and payment updates.
+
+This separation keeps selectors isolated from business logic and improves maintainability.
+
+### API Client
+The API implementation is separated into service layers:
+
+- `APIClient` manages HTTP requests and authentication state.
+- `AuthService` handles login and MFA token exchange.
+- `AccountService` handles banking and payment updates.
+
+Custom exception types provide consistent error handling across all API operations.
+
+### Test Data
+Only sandbox/test data is used. No real banking or payment information is required.
 
 ---
 
 ## Prerequisites
-
+- Linux (Debian based distro)
 - Python 3.10+
-- `pip` or a virtual-env manager (see optional uv/Poetry notes below)
+- `pip` or a virtual-env manager
 
 ---
 
@@ -47,11 +75,11 @@ engineering-challenge/
 
 ```bash
 # 1. Clone / unzip the project
-cd engineering-challenge
+cd Python-WebScraping
 
 # 2. Create and activate a virtual environment (this is important for newer Ubuntu distros)
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate   
 
 # 3. Install Python dependencies
 pip install -r requirements.txt
@@ -66,11 +94,11 @@ playwright install chromium
 
 | Variable   | Description                       | Default (sandbox)           |
 |------------|-----------------------------------|-----------------------------|
-| `USERNAME` | Sandbox account email             | `candidate1@onsetto.test`   |
+| `EMAIL`    | Sandbox account email             | `candidate1@onsetto.test`   |
 | `PASSWORD` | Sandbox account password          | `Password123!`              |
-| `MFA_CODE` | It accepts whatever               | `123456`                    |
+| `MFA_CODE` | MFA verification code             | `1234`                      |
 
-> **Important:** this is a simulation environment. Never substitute real financial or personal data.
+> Note: The browser challenge accepts any MFA code.
 
 ---
 
@@ -88,7 +116,7 @@ What it does:
 5. Submits banking details (9-digit routing, 9-digit account number).
 6. Submits payment details (Luhn-valid Visa test card, future expiry).
 7. Reads the `#last-updated-summary` element and asserts the masked values are present.
-8. Prints `✓ Part 1 complete` on success, or saves `error_screenshot.png` on failure.
+8. Prints `Part 1 complete` on success, or saves `error_screenshot.png` on failure.
 
 ---
 
@@ -107,49 +135,35 @@ What it does:
 Sample output:
 
 ```
-2025-01-01 12:00:00 [INFO] Logging in as candidate1@onsetto.test
-2025-01-01 12:00:01 [INFO] Verifying MFA
-2025-01-01 12:00:01 [INFO] ✓ Authenticated
-2025-01-01 12:00:01 [INFO] Updating banking details
+Authenticating...
+✓ MFA token received
+✓ Access token received
 
-──────────────────────────────────────────────────
-  Banking confirmation (masked)
-──────────────────────────────────────────────────
-{
-  "routing_number": "***0021",
-  "account_number": "***6789"
-}
+Banking updated:
+Routing: •••••0021
+Account: ••••••7890
 
-──────────────────────────────────────────────────
-  Payment confirmation (masked)
-──────────────────────────────────────────────────
-{
-  "card_number": "***1111",
-  "cardholder_name": "Test User"
-}
+Payment updated:
+Brand: visa
+Last4: 4242
+Expiry: 12/2027
 
-2025-01-01 12:00:02 [INFO] ✓ Part 2 complete — all updates successful
+✓ Challenge completed successfully
 ```
-
 ---
 
-## Error handling
+## Testing
+Unit tests are implemented using `pytest` and use mocked HTTP responses to avoid consuming API rate limits.
 
-| Scenario              | Behaviour                                          |
-|-----------------------|----------------------------------------------------|
-| Wrong credentials     | `AuthError` with a clear message; exits with code 1 |
-| Wrong MFA code        | `MFAError` with a clear message                    |
-| Validation failure    | `ValidationError` showing the server detail field  |
-| Rate limit (429)      | Logged warning; PUT requests auto-retry with exponential back-off (max 3 retries, capped at 30 s) |
-| Server error (5xx)    | `AccountUpdateError`; stack trace visible at DEBUG level |
-| Browser automation failure | Screenshot saved to `error_screenshot.png`   |
-
----
-
-# Testing
-
+Run the test suite:
 ```bash
 pytest --cov=api
 ```
-# Python-WebScraping
-# Python-WebScraping
+Current Coverage:
+
+- `api/__init__.py` → 100%
+- `api/account.py`  →  100%
+- `api/auth.py`  →  95%
+- `api/client.py`  →  59%
+- `api/exceptions.py`  →  100%
+
